@@ -16,7 +16,7 @@ weather_data = read.csv("./data/raw_data/weather_data_noaa_athens.csv")
 
 #Generate Sampling Data Set
 #Sampling Data 
-sample_data = data.frame("collection_num" = 5:11, "date" = c("2020-06-16", "2020-06-23", "2020-06-30", "2020-07-07", "2020-07-14", "2020-07-21", "2020-07-28"), stringsAsFactors = FALSE)
+sample_data = data.frame("collection_num" = 5:18, "date" = c("2020-06-16", "2020-06-23", "2020-06-30", "2020-07-07", "2020-07-14", "2020-07-21", "2020-07-28", "2020-08-04", "2020-08-11", "2020-08-18", "2020-08-25", "2020-09-01", "2020-09-08", "2020-09-15"), stringsAsFactors = FALSE)
 sample_data$date = as.Date(sample_data$date)
 sample_data$collection_num = as.character(sample_data$collection_num)
 
