@@ -70,7 +70,7 @@ n1_n2_cleaned = plyr::ddply(n1_n2_plant, c("wrf", "collection_num","date", "targ
 
 n1_n2_cleaned_cases = left_join(case_data, n1_n2_cleaned, by = c("date"))
 
-saveRDS(n1_n2_cleaned_cases, "./data/processed_data/n1_n2_cleaned.RDS")
+saveRDS(n1_n2_cleaned_cases, "./data/processed_data/n1_n2_cleaned_cases.RDS")
 
 write.csv(n1_n2_cleaned, "./data/processed_data/n1_n2_cleaned.csv")
 write.csv(n1_n2_cleaned_cases, "./data/processed_data/n1_n2_cleaned_cases.csv")
