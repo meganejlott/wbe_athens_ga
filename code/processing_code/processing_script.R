@@ -28,9 +28,13 @@ names(n1_n2)[1] = "run_date"
 
 #rename first column plant data
 names(plant_data)[1] = "date"
-plant_data$date = as.Date(plant_data$date)
+plant_data$date = as.character(plant_data$date)
+plant_data$date = as.Date(plant_data$date, "%m/%d/%Y")
 plant_data$wrf = as.character(plant_data$wrf)
 plant_data = plant_data %>% mutate(wrf = trimws(plant_data$wrf, which = "right"))
+#Save plant_data 
+write.csv(plant_data, "./data/processed_data/plant_data.csv")
+
 
 names(case_data)[1] = "date"
 case_data$date = as.character(case_data$date)
@@ -71,6 +75,5 @@ n1_n2_cleaned = plyr::ddply(n1_n2_plant, c("wrf", "collection_num","date", "targ
 n1_n2_cleaned_cases = left_join(case_data, n1_n2_cleaned, by = c("date"))
 
 saveRDS(n1_n2_cleaned_cases, "./data/processed_data/n1_n2_cleaned_cases.RDS")
-
 write.csv(n1_n2_cleaned, "./data/processed_data/n1_n2_cleaned.csv")
 write.csv(n1_n2_cleaned_cases, "./data/processed_data/n1_n2_cleaned_cases.csv")
