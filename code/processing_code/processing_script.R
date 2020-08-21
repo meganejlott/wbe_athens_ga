@@ -45,6 +45,49 @@ weather_data$date = as.character(weather_data$date)
 weather_data$date = as.Date(weather_data$date, "%m/%d/%Y")
 
 
+#Let's determine the number of positive wells per sample, per week. 
+
+#by_wells = n1_n2
+#by_wells$pos_neg = by_wells$ct
+#by_wells$pos_neg = as.factor(by_wells$pos_neg)
+#by_wells$pos_neg = fct_recode(by_wells$pos_neg, negative = "Undetermined") 
+#by_wells$pos_neg = fct_other(by_wells$pos_neg, keep = c("negative"))
+#by_wells$pos_neg = fct_recode(by_wells$pos_neg, positive = "Other") 
+
+#by_wells = by_wells %>% select(collection_num, sample_id, pos_neg, target)
+#by_wells = by_wells %>% separate(col = sample_id, into = c("wrf","collection_num", "rep_id"), sep = "_")
+#by_wells = left_join(by_wells, sample_data, by = c("collection_num"))
+
+
+#by_wells %>% ggplot(aes(fill = pos_neg, x= date)) + 
+ # geom_bar(position = "fill") + 
+#scale_fill_manual(values=c("grey", "red4"))
+
+
+#Let's determine the number of positive samples per week. Let's average the replicates. 
+#If the average of the replicates > 0.0002000 * 3, then consider this sample positive
+
+#by_wells = n1_n2
+#by_wells = plyr::ddply(by_wells,.(sample_id, target, run_num),plyr::summarize, copy_num_uL_rxn = mean(copy_num_uL_rxn)) 
+
+#by_wells$pos_neg = as.factor(by_wells$copy_num_uL_rxn)
+#by_wells$pos_neg = fct_recode(by_wells$pos_neg, negative = "2e-04") 
+#by_wells$pos_neg = fct_other(by_wells$pos_neg, keep = c("negative"))
+#by_wells$pos_neg = fct_recode(by_wells$pos_neg, positive = "Other") 
+
+#by_wells = left_join(by_wells, sample_data, by = c("collection_num"))
+#by_wells = plyr::ddply(by_wells,.(wrf, collection_num, rep_id),plyr::summarize, copy_num_uL_rxn = mean(copy_num_uL_rxn)) 
+#by_wells$pos_neg = as.factor(by_wells$copy_num_uL_rxn)
+#by_wells$pos_neg = fct_recode(by_wells$pos_neg, negative = "2e-04") 
+#by_wells$pos_neg = fct_other(by_wells$pos_neg, keep = c("negative"))
+#by_wells$pos_neg = fct_recode(by_wells$pos_neg, positive = "Other") 
+
+#by_wells %>% ggplot(aes(fill = pos_neg, x= date)) + 
+ # geom_bar() + 
+  #scale_fill_manual(values=c("grey", "red4"))  
+
+
+
 #Now, take the average of the replicates 
 n1_n2_ave = plyr::ddply(n1_n2,.(sample_id, target, run_num),plyr::summarize, copy_num_uL_rxn = mean(copy_num_uL_rxn)) 
 

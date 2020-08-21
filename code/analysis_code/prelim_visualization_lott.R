@@ -120,3 +120,5 @@ library(lubridate)
 case_data = case_data %>% mutate(day = wday(date, label=TRUE))
 
 case_data %>% dplyr::group_by(day) %>% dplyr::summarize(mean_new_cases = mean(new_cases_clarke, na.rm = TRUE))
+
+
