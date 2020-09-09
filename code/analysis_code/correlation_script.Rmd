@@ -1,0 +1,207 @@
+---
+title: "Untitled"
+author: "William Norfolk"
+date: "9/8/2020"
+output: html_document
+---
+
+Load all required libraries.
+```{r}
+library(tidyverse)
+library(plotly)
+library(broom)
+library(zoo)
+library(ggpubr)
+```
+
+Read in raw data from RDS.
+```{r}
+raw_data = read.csv("./data/processed_data/n1_n2_cleaned_cases.csv")
+```
+
+Make a few small modifications to names and data for visualizations.
+```{r}
+#fix names and add logs
+final_data <- raw_data %>% mutate(log_copy_per_L = log10(mean_copy_num_L)) %>%
+  rename(Facility = wrf) %>%
+  mutate(Facility = recode(Facility, 
+                           "NO" = "WRF A",
+                           "MI" = "WRF B",
+                           "CC" = "WRF C"))
+
+#remove extra days with no sampling done. Data is weekly after this point
+sum_data <- subset(final_data, (!is.na(final_data$Facility)))
+
+#average N1 and N2 replicates per facility on each day
+sum_data <- sum_data %>% 
+  group_by(target, date, X7_day_ave_clarke, Facility) %>%
+  summarize(log_copy_per_L = mean(log_copy_per_L)) %>%
+  ungroup()
+
+#remove facility then sum the log_copies_per_L for the N1 and N2 gene targets. 
+#WRF A + WRF B = Total Estimate for Athens
+sum_data <- sum_data %>% select(-c(Facility)) %>%
+  group_by(target, date, X7_day_ave_clarke) %>%
+  summarize(log_copy_per_L = sum(log_copy_per_L)) %>%
+  ungroup()
+ 
+
+#seperate gene targets into two dataframes
+only_n1 <- subset(sum_data, target == "N1")
+only_n2 <- subset(sum_data, target == "N2")
+
+```
+
+
+```{r}
+#make base dataframe of just running data to calculate 7-day cumulative values
+remove_hits <- final_data %>% select(c(date, new_cases_clarke)) %>%
+  group_by(date) %>%
+  summarise_if(is.numeric, mean) %>%
+  add_row(date = as.Date("2020-09-03"), new_cases_clarke = 173) %>% #add in missing days
+  add_row(date = as.Date("2020-09-04"), new_cases_clarke = 88) %>%
+  add_row(date = as.Date("2020-09-05"), new_cases_clarke = 277) %>%
+  add_row(date = as.Date("2020-09-06"), new_cases_clarke = 63) %>%
+  add_row(date = as.Date("2020-09-07"), new_cases_clarke = 38) %>%
+  add_row(date = as.Date("2020-09-08"), new_cases_clarke = 206)
+
+#create a vector of the 7-day cumulative totals where sampling is the end of the 7 days
+remove_hits_front <- subset(remove_hits, date >= as.Date("2020-06-10"))
+seven_day_cumulative_front <- rollapply(remove_hits_front$new_cases_clarke, 7, FUN = sum, by =7)
+#remove the extra row for this frame
+seven_day_cumulative_front <- seven_day_cumulative_front[!seven_day_cumulative_front %in% 924 ]
+seven_day_cumulative_front
+
+#create a vector of the 7-day cumulative totals where sampling is the middle of the 7 days
+remove_hits_mid <- subset(remove_hits, date >= as.Date("2020-06-13"))
+seven_day_cumulative_mid <- rollapply(remove_hits_mid$new_cases_clarke, 7, FUN = sum, by = 7)
+seven_day_cumulative_mid
+#create a vector of the 7-day cumulative totals where sampling is the beginning of the 7 days
+remove_hits_back <- subset(remove_hits, date >= as.Date("2020-06-16"))
+seven_day_cumulative_back <- rollapply(remove_hits_back$new_cases_clarke, 7, FUN = sum, by = 7)
+seven_day_cumulative_back
+```
+
+```{r}
+#combine the 7-day cumulative values into a plotting dataframe
+#n1
+plot_data_n1 <- only_n1 %>% select(c(date, log_copy_per_L))
+plot_data_n1$seven_day_front <- seven_day_cumulative_front
+plot_data_n1$seven_day_mid <- seven_day_cumulative_mid
+plot_data_n1$seven_day_back <- seven_day_cumulative_back
+#n2
+plot_data_n2 <- only_n2 %>% select(c(date, log_copy_per_L))
+plot_data_n2$seven_day_front <- seven_day_cumulative_front
+plot_data_n2$seven_day_mid <- seven_day_cumulative_mid
+plot_data_n2$seven_day_back <- seven_day_cumulative_back
+```
+
+
+```{r}
+#7-day window ending on the sample date
+n1_front <- plot_data_n1 %>% ggplot() + 
+  geom_point(aes(x = log_copy_per_L, y = seven_day_front, color = "Before Sample")) + 
+  geom_smooth(aes(x = log_copy_per_L, y = seven_day_front), method = "lm", se = FALSE) +
+  theme_classic() +
+  xlab("Mean Log SARS CoV-2 Copies/L") +
+  ylab("7-Day Cumulative Cases")+
+  scale_y_continuous(breaks = seq(0, 900, 200), limits = c(0, 900))
+
+
+n1_front <- n1_front + theme(legend.position = "none") + 
+  labs(title = "N1 Gene",
+       subtitle = "7-Day Window Ending on Sample Date")
+                             
+n1_front
+
+#7-day window with the sample date on the midpoint
+n1_mid <- plot_data_n1 %>% ggplot() + 
+  geom_point(aes(x = log_copy_per_L, y = seven_day_mid, color = "Before Sample")) + 
+  geom_smooth(aes(x = log_copy_per_L, y = seven_day_mid), method = "lm", se = FALSE) +
+  theme_classic() +
+  xlab("Mean Log SARS CoV-2 Copies/L") +
+  ylab("7-Day Cumulative Cases")+
+  scale_y_continuous(breaks = seq(0, 900, 200), limits = c(0, 900))
+
+
+n1_mid <- n1_mid + theme(legend.position = "none") + 
+  labs(title = "N1 Gene",
+       subtitle = "7-Day Window Midpoint on Sample Date")
+                             
+n1_mid
+
+#7-day window starting on the sample date
+n1_back <- plot_data_n1 %>% ggplot() + 
+  geom_point(aes(x = log_copy_per_L, y = seven_day_back, color = "Before Sample")) + 
+  geom_smooth(aes(x = log_copy_per_L, y = seven_day_back), method = "lm", se = FALSE) +
+  theme_classic() +
+  xlab("Mean Log SARS CoV-2 Copies/L") +
+  ylab("7-Day Cumulative Cases")+
+  scale_y_continuous(breaks = seq(0, 900, 200), limits = c(0, 900))
+
+
+n1_back <- n1_back + theme(legend.position = "none") + 
+  labs(title = "N1 Gene",
+       subtitle = "7-Day Window Starting on Sample Date")
+                             
+n1_back
+
+
+ggarrange(n1_front, n1_mid, n1_back)
+```
+
+```{r}
+#7-day window ending on the sample date
+n2_front <- plot_data_n2 %>% ggplot() + 
+  geom_point(aes(x = log_copy_per_L, y = seven_day_front, color = "Before Sample")) + 
+  geom_smooth(aes(x = log_copy_per_L, y = seven_day_front), method = "lm", se = FALSE) +
+  theme_classic() +
+  xlab("Mean Log SARS CoV-2 Copies/L") +
+  ylab("7-Day Cumulative Cases") +
+  scale_y_continuous(breaks = seq(0, 900, 200), limits = c(0, 900))
+
+n2_front <- n2_front + theme(legend.position = "none") + 
+  labs(title = "N2 Gene",
+       subtitle = "7-Day Window Ending on Sample Date")
+                             
+n2_front
+
+#7-day window with the sample date on the midpoint
+n2_mid <- plot_data_n2 %>% ggplot() + 
+  geom_point(aes(x = log_copy_per_L, y = seven_day_mid, color = "Before Sample")) + 
+  geom_smooth(aes(x = log_copy_per_L, y = seven_day_mid), method = "lm", se = FALSE) +
+  theme_classic() +
+  xlab("Mean Log SARS CoV-2 Copies/L") +
+  ylab("7-Day Cumulative Cases") +
+  scale_y_continuous(breaks = seq(0, 900, 200), limits = c(0, 900))
+
+n2_mid <- n2_mid + theme(legend.position = "none") + 
+  labs(title = "N2 Gene",
+       subtitle = "7-Day Window Midpoint on Sample Date")
+                             
+n2_mid
+
+#7-day window starting on the sample date
+n2_back <- plot_data_n2 %>% ggplot() + 
+  geom_point(aes(x = log_copy_per_L, y = seven_day_back, color = "Before Sample")) + 
+  geom_smooth(aes(x = log_copy_per_L, y = seven_day_back), method = "lm", se = FALSE) +
+  theme_classic() +
+  xlab("Mean Log SARS CoV-2 Copies/L") +
+  ylab("7-Day Cumulative Cases") +
+  scale_y_continuous(breaks = seq(0, 900, 200), limits = c(0, 900))
+
+n2_back <- n2_back + theme(legend.position = "none") + 
+  labs(title = "N2 Gene",
+       subtitle = "7-Day Window Starting on Sample Date")
+                             
+n2_back
+
+
+ggarrange(n2_front, n2_mid, n2_back)
+
+```
+
+
+
+
+
