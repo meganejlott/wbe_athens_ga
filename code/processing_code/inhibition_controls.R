@@ -7,8 +7,33 @@ library(dplyr)
 
 
 #Load Data 
-inhibition_data = read.csv("./data/raw_data/inhibition_data.csv")
+inhibition_data = read.csv("./data/raw_data/inhibition_controls.csv")
 rna_controls = read.csv("./data/raw_data/rna_controls.csv")
+
+
+
+inhibition_data = plyr::ddply(inhibition_data,.(sample_name, sample_type),plyr::summarize, ct_ave = mean(ct)) 
+p_meds <- ddply(inhibition_data, .(sample_type), summarise, med = median(ct_ave))
+
+
+inhibition_data %>% ggplot(aes(x = sample_type, y = ct_ave)) + 
+  geom_boxplot() + 
+  ylab("Ct Value") + 
+  xlab("Sample Type") + 
+  ggtitle("Inhibition Control") + 
+  geom_text(data = p_meds, aes(x = sample_type, y = med, label = med), size = 3, vjust = -1)
+
+
+inhibition_data %>% ggplot(aes(x = sample_type, y = ct_ave)) + 
+  geom_violin(draw_quantiles = c(0.5)) + 
+  ylab("Ct Value") + 
+  xlab("Sample Type") + 
+  ggtitle("Inhibition Control") + 
+  geom_text(data = p_meds, aes(x = sample_type, y = med, label = med), size = 3, vjust = -1)
+
+
+
+
 
 
 #Generate Sampling Data Set
@@ -58,3 +83,6 @@ rna_controls = rna_controls %>% select(-copies_ul_rxn, -sample_name)
 
 inhibition_data = left_join(inhibition_data, rna_controls, by = "run_num")inhibition_data = inhibition_data %>% mutate(copies_sample = log10(copies_ul_rxn), copies_control = log10(copies_control))
 inhibition_data = inhibition_data %>% mutate(percent_inhibition = (1-(copies_sample/copies_control))*100)
+
+
+inhibition_data %>% ggplot() + geom_boxplot()

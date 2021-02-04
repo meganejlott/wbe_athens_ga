@@ -14,8 +14,6 @@ case_data = read.csv("./data/raw_data/case_data_ebel.csv")
 #Format Date
 plant_data$date = as.Date(plant_data$date)
 
-
-
 names(case_data)[1] = "date"
 case_data$date = as.character(case_data$date)
 case_data$date = as.Date(case_data$date, "%m/%d/%Y")
@@ -108,13 +106,12 @@ n1_n2_total = grid.arrange(clarke_cases, mi_plant, no_plant, ncol = 1)
 ggsave(filename="./n1_n2_total.png", plot=n1_n2_total) 
 
 
-plant_data = plant_data %>% mutate(influent_flow_L = 0.264172 * 1000000 * influent_flow_mg)
-
 plant_data %>% ggplot(aes(x = date)) + 
-  geom_point(aes(y = log10(influent_flow_L))) + 
-  geom_line(aes(y = log10(influent_flow_L))) +
-  geom_smooth(aes(y = log10(influent_flow_L))) + 
+  geom_point(aes(y = (influent_flow_L))) + 
+  geom_line(aes(y = (influent_flow_L))) +
+  geom_smooth(aes(y = (influent_flow_L))) + 
   facet_wrap(~wrf)
+
 library(lubridate)
 #Which day of the week has the highest number of newly reported cases?
 case_data = case_data %>% mutate(day = wday(date, label=TRUE))
@@ -122,3 +119,11 @@ case_data = case_data %>% mutate(day = wday(date, label=TRUE))
 case_data %>% dplyr::group_by(day) %>% dplyr::summarize(mean_new_cases = mean(new_cases_clarke, na.rm = TRUE))
 
 
+
+plant_data %>% ggplot(aes(x = wrf, y = influent_flow_L)) + 
+geom_boxplot()  
+
+
+n1_n2_cases %>% filter(mean_copy_num_L != "NA") %>% ggplot(aes(x = target, y = log10(mean_copy_num_L))) + 
+  geom_boxplot()  + 
+  ylim(0,8) 
