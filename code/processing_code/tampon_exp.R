@@ -34,15 +34,6 @@ sewerline_data %>% filter(site_id != "Y") %>% ggplot(aes(x = date, y = log_copie
   theme(axis.text.x = element_text(angle = 45, hjust=1)) +
   geom_hline(yintercept=1.853872, linetype="dashed")
 
-sewerline_data %>% ggplot(aes(x = date, y = log_copies, fill = target)) +
-  geom_bar(position = "dodge", stat = "identity") + 
-  #geom_errorbar(aes(ymax = ave_log_copies + sd_log_copies, ymin = ave_log_copies - sd_log_copies), position = "dodge", stat = "identity") +
-  scale_fill_manual(values = c('#1B9E77','#D95F02', '#1B9E77','#D95F02')) + 
-  ylab("Log (Viral Copies Eluted)") + 
-  xlab("Collection Date (24H Composite)") + 
-  facet_wrap(~site_id, nrow = 2) + 
-  theme(axis.text.x = element_text(angle = 45, hjust=1)) +
-  geom_hline(yintercept=1.853872, linetype="dashed")
 
 write.csv(sewerline_data, "./data/processed_data/sewerline_data.csv")
 
@@ -50,7 +41,7 @@ write.csv(sewerline_data, "./data/processed_data/sewerline_data.csv")
 sewerline_data = plyr::ddply(sewerline_data,.(date, site_id), plyr::summarize, ave_copies = mean(log_copies)) 
 #sewerline_data = mutate(sewerline_data, log_copies = log10(ave_copies))
 
-sewerline_data %>% filter(date == "2021-01-26") %>% filter(site_id != "Y") %>% ggplot(aes(x = date, y = ave_copies))+
+sewerline_data %>% filter(date == "2021-01-20") %>% filter(site_id != "Y") %>% filter(site_id != "y")%>% ggplot(aes(x = date, y = ave_copies))+
   geom_bar(position = "dodge", stat = "identity") + 
   scale_fill_manual(values = c('#1B9E77','#D95F02', '#1B9E77','#D95F02')) + 
   ylab("Log(Viral Copies Eluted)") + 
@@ -62,11 +53,11 @@ sewerline_data %>% filter(date == "2021-01-26") %>% filter(site_id != "Y") %>% g
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 
-sewerline_data %>% filter(site_id != "Y") %>% ggplot(aes(x = date, y = ave_copies))+
+sewerline_data %>% filter(site_id != "Y") %>% filter(site_id != "y") %>% ggplot(aes(x = date, y = ave_copies))+
   geom_bar(position = "dodge", stat = "identity") + 
   scale_fill_manual(values = c('#1B9E77','#D95F02', '#1B9E77','#D95F02')) + 
   ylab("Log(Viral Copies Eluted)") + 
   xlab("Sampling Period") + 
-  facet_grid(~site_id) + 
+  facet_wrap(~site_id, ncol = 3) + 
   theme(axis.text.x = element_text(angle = 45, hjust=1)) +
   geom_hline(yintercept=1.853872, linetype="dashed") 
