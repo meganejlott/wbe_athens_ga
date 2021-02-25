@@ -51,7 +51,7 @@ This document will serve as a report among collaborators working on the analysis
 
 
 ```{r}
-my.packages <- c("dplyr", "readr", "magrittr", "knitr")
+my.packages <- c("dplyr", "readr", "magrittr", "knitr", "openxlsx")
 
 sapply(my.packages, library, character.only=T)
 ```
@@ -99,7 +99,7 @@ wbe <- bind_rows(n1, n2) %>%
 ### Additional Data Sources
 
 ```{r}
-covid <- read_csv("data/raw_data/ga_covid_data/epicurve_symptom_date.csv") %>% 
+covid <- read_csv("./consult/01-data/ga_covid_data/epicurve_symptom_date.csv") %>% 
             filter(county=="Clarke") %>% 
             select(symptom.date=`symptom date`, cases, moving_avg_cases)
 ```
@@ -126,14 +126,15 @@ wbe.summary.tr <- wbe %>%
                       copy.mean=mean(copies, na.rm=T),
                       copy.sd=sd(copies,na.rm=T)
                       ) %>% 
-                    ungroup() 
+                    mutate_all(function(x){ifelse(is.nan(x), NA, x)}) %>% 
+                    ungroup()
 
 wbe.summary.br <- wbe.summary.tr %>%
                     group_by(sample_date, facility, target) %>% 
                     summarise(
                       n.bio = n(),
-                      n.bio.non.miss = sum(!is.nan(ct.mean)),
-                      n.bio.miss = sum(is.nan(ct.mean)),
+                      n.bio.non.miss = sum(!is.na(ct.mean)),
+                      n.bio.miss = sum(is.na(ct.mean)),
                       n.total = sum(n), 
                       n.total.miss = sum(n.miss), 
                       bio.ct.mean = mean(ct.mean, na.rm = T), 
@@ -142,8 +143,17 @@ wbe.summary.br <- wbe.summary.tr %>%
                       bio.copy.mean = mean(copy.mean, na.rm = T), 
                       bio.copy.sd = sd(copy.mean, na.rm=T), 
                       tech.copy.dists = paste(paste0(biological_replicate, " = ", round(copy.mean,2), " (sd=", round(copy.sd,2), ", n=", n-n.miss, ")"), collapse = "; ")
-                      )
+                      ) %>%
+                      mutate_all(function(x){ifelse(is.nan(x), NA, x)}) %>% 
+                      ungroup()
 
+# temp <- c("Date of Sample Collection", "Wastewater Reclamation Facility ID", "Viral Sequence Target", "Total Number of Biological Replicates", "Number of Biological Replicates which yielded Detectable Sample", "Number of Biological Replicates which did not yield Detectable Sample", "Total Number of Technical Replicates", "Total Number of Technical Replicates which did not yield Detectable Sample", "Average Ct Value across Biological Replicates", "Standard Deviation of Ct Value across Biological Replicates", "Distributions of Ct Values for Technical Replicates from each Biological Replicate", "Average Number of Viral Sequence Copies per Microliter across Biological Replicates", "Standard Deviation of Viral Sequence Copies per Microliter across Biological Replicates", "Distributions of Viral Sequence Copies per Microliter for Technical Replicates from each Biological Replicate")
+# 
+# names(temp) <- names(wbe.summary.br)
+# 
+# to.write <- bind_rows(temp, wbe.summary.br%>%mutate_all(function(x){as.character(x)}))
+
+# write.xlsx(to.write, file="./consult/01-data/summary_wbe_bio_samples.xlsx")
 ```
 
 ```{r}
@@ -177,7 +187,10 @@ summary(glm(cbind(n.total-n.total.miss, n.total.miss)~target+facility, data=wbe.
 
 ```{r}
 
+bar.data <- as.matrix(t(prop.detect[,c("n.bio.non.miss", "n.bio.miss")]))
+colnames(bar.data) <- paste(prop.detect$facility, prop.detect$target, sep=" - ")
 
+barplot(bar.data, legend = rownames(bar.data))
 ```
 
 
