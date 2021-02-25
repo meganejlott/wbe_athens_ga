@@ -1,0 +1,190 @@
+---
+title: Biostatistical Consulting <br> Wastewater-based Epidemiology of COVID-19 in Athens,
+  GA, USA 2020-2021
+author: "Cody Dailey & Megan Lott <br> William Norfolk <br> Erin Lipp <br> Stephen Rathbun"
+date: "2/11/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: hide
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Preface {-}
+
+This document will serve as a report among collaborators working on the analysis of wastewater surveillance data as part of a biostatistical consulting course (BIOS8200) instructed by Dr. Stephen Rathbun. The wastewater surveillance project was designed and implemented by Dr. Erin Lipp and her environmental health doctoral students, Megan Lott and William Norfolk. Megan Lott acts as the primary "client" for correspondence with lead "consultant" Cody Dailey, under the supervision of Dr. Stephen Rathbun and with meaningful discussion among other course consultants: Nicholas Mallis, Amanda Skarlupka, Morgan Taylor, and Adrianna Westbrook.
+
+
+# Background
+
+## SARS-CoV-2 and COVID-19 Pandemic
+
+## Wastewater-based Epidemiological Surveillance
+
+## Objectives
+
+1. To assess a predictive framework using wastewater sampling to inform COVID-19 surveillance
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Methods
+
+
+```{r}
+my.packages <- c("dplyr", "readr", "magrittr", "knitr")
+
+sapply(my.packages, library, character.only=T)
+```
+
+
+## Overview of Wastewater Sampling, Processing, and Analysis with Resulting Data
+
+Three Athens-Clarke County (ACC) water reclamation facilities yield three water samples (volume) twice weekly (on Mondays and Wednesdays). The samples from each facility at the same timepoint are referred to as biological replicates. Each biological replicate is further subdivided into three technical replicates that are used in a quantitative (real-time) polymerase chain reaction (qPCR) based laboratory workflow. Essentially, viral genetic material is extracted from the wastewater samples and, then, serially amplified to determine the concentration in the original sample. This qPCR workflow is done in duplicate for two separate sequence targets (n1 and n2). 
+
+
+## Data Management and Cleaning
+
+The raw data are output from the PCR machine (?) which are processed by Megan Lott to an aggregate excel workbook. These data contain unique identifiers for biological and technical replicates, sample date, qPCR run date, and cycle threshold (ct; the number of PCR cycles ran until the genetic material was detected). Additionally, there are variables (slope and y-intercept) included; these variables are used in the unit conversion from ct to genetic copies per microliter (different values for the different sequence targets).
+
+
+
+
+
+```{r}
+n1 <- read_csv("./data/raw_data/n1_all_cleaned2.csv")
+n2 <- read_csv("./data/raw_data/n2_all_cleaned2.csv")
+```
+
+```{r}
+wbe <- bind_rows(n1, n2) %>% 
+          mutate(
+            run_date=as.Date(run_date, format = "%d-%b-%y"), 
+            sample_date=as.Date(sample_date, format = "%d-%b-%y"), 
+            facility=substr(sample_id, 1,2), 
+            biological_replicate=substr(sample_id, nchar(sample_id), nchar(sample_id)), 
+            ct=as.numeric(ifelse(ct=="Undetermined", NA, ct)), 
+            copy_num_uL_rxn=as.numeric(copy_num_uL_rxn)
+            ) %>% 
+          mutate(copies = 10^((ct-`y-intercept`)/slope))%>%
+          arrange(sample_date, facility, target, biological_replicate)
+
+```
+
+
+
+
+
+
+
+### Additional Data Sources
+
+```{r}
+covid <- read_csv("data/raw_data/ga_covid_data/epicurve_symptom_date.csv") %>% 
+            filter(county=="Clarke") %>% 
+            select(symptom.date=`symptom date`, cases, moving_avg_cases)
+```
+
+
+## Statistical Analysis
+
+### Exploration of Association Structures
+
+### Predictive Capabilities
+
+# Results
+
+## Data Description and Visualization
+
+```{r}
+wbe.summary.tr <- wbe %>% 
+                    group_by(sample_date, facility, target, biological_replicate) %>% 
+                    summarise(
+                      n=n(), 
+                      n.miss=sum(is.na(ct)), 
+                      ct.mean=mean(ct,na.rm=T), 
+                      ct.sd=sd(ct,na.rm=T), 
+                      copy.mean=mean(copies, na.rm=T),
+                      copy.sd=sd(copies,na.rm=T)
+                      ) %>% 
+                    ungroup() 
+
+wbe.summary.br <- wbe.summary.tr %>%
+                    group_by(sample_date, facility, target) %>% 
+                    summarise(
+                      n.bio = n(),
+                      n.bio.non.miss = sum(!is.nan(ct.mean)),
+                      n.bio.miss = sum(is.nan(ct.mean)),
+                      n.total = sum(n), 
+                      n.total.miss = sum(n.miss), 
+                      bio.ct.mean = mean(ct.mean, na.rm = T), 
+                      bio.ct.sd = sd(ct.mean, na.rm=T), 
+                      tech.ct.dists = paste(paste0(biological_replicate, " = ", round(ct.mean,2), " (sd=", round(ct.sd,2), ", n=", n-n.miss, ")"), collapse = "; "),
+                      bio.copy.mean = mean(copy.mean, na.rm = T), 
+                      bio.copy.sd = sd(copy.mean, na.rm=T), 
+                      tech.copy.dists = paste(paste0(biological_replicate, " = ", round(copy.mean,2), " (sd=", round(copy.sd,2), ", n=", n-n.miss, ")"), collapse = "; ")
+                      )
+
+```
+
+```{r}
+prop.detect <- wbe.summary.br%>%
+                      group_by(facility, target)%>%
+                      summarise(
+                        n.bio.non.miss=sum(n.bio.non.miss), 
+                        n.bio.miss=sum(n.bio.miss), 
+                        n.bio=sum(n.bio), 
+                        n.tech.miss=sum(n.total.miss), 
+                        n.tech=sum(n.total)
+                        )%>%
+                      mutate(
+                        prop.nm.bio=n.bio.non.miss/n.bio, 
+                        prop.nm.tech=(n.tech-n.tech.miss)/n.tech
+                        )
+
+prop.detect%>%
+  mutate(
+    prop.bio = paste0(round(prop.nm.bio*100,1), " (", n.bio.non.miss, " / ", n.bio, ")"), 
+    prop.tech = paste0(round(prop.nm.tech*100,1), " (", n.tech-n.tech.miss, " / ", n.tech, ")"))%>%
+  select(facility, target, prop.bio, prop.tech)%>%
+  kable(col.names = c("Wastewater Reclamation Facility", "Viral Sequence Target", "Proportion of Biological Samples with Detectable Levels", "Proportion of Technical Replicates with Detectable Levels"))
+
+
+
+summary(glm(cbind(n.bio.non.miss, n.bio.miss)~target+facility, data=wbe.summary.br, family="binomial"))
+summary(glm(cbind(n.total-n.total.miss, n.total.miss)~target+facility, data=wbe.summary.br, family="binomial"))
+```
+
+
+```{r}
+
+
+```
+
+
+
+## Hypothesis Testing to Inference
+
+## Predictions
+
+# Discussion
+
