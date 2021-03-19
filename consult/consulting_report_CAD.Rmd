@@ -10,6 +10,8 @@ output:
     toc_depth: 3
     code_folding: hide
     number_sections: true
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -73,6 +75,8 @@ The raw data are output from the PCR machine (?) which are processed by Megan Lo
 ```{r}
 n1 <- read_csv("./data/raw_data/n1_all_cleaned2.csv")
 n2 <- read_csv("./data/raw_data/n2_all_cleaned2.csv")
+
+qc <- read_csv("./data/raw_data/QC/all_curves.csv")
 ```
 
 ```{r}
@@ -114,6 +118,326 @@ covid <- read_csv("./consult/01-data/ga_covid_data/epicurve_symptom_date.csv") %
 # Results
 
 ## Data Description and Visualization
+
+Output of RT-PCR = Cycle Threshold (Ct) = number of amplification cycles at which fluorescence intensity is detectable
+
+$$N_n = N_0 \times (1+E)^n$$
+$$N_n/N_0 = 2^n$$
+$$10 = 2^n$$
+$$log_2(10) = n \approx 3.322$$
+
+
+$$E = 10^{-(\frac{1}{n})}-1$$
+
+
+
+
+
+
+
+$$\#Copies~ per~ \mu L~ Reaction = 10 ^ \frac{Ct - Intercept}{Slope}$$
+$$\#Copies~ per~ \mu L~ Reaction ~ N1 = 10 ^ \frac{Ct - 34.008}{-3.3890}$$
+
+$$\#Copies~ per~ \mu L~ Reaction ~ N2 = 10 ^ \frac{Ct - 32.416}{-3.3084}$$
+
+```{r}
+summary(qc)
+plot(ct~log10(quantity), data=qc[which(qc$target=="N1"),])
+lm(ct~log10(quantity), data=qc[which(qc$target=="N1"),])
+
+plot(ct~log10(quantity), data=qc[which(qc$target=="N2"),])
+lm(ct~log10(quantity), data=qc[which(qc$target=="N2"),])
+
+qc.means <- qc %>% group_by(target, quantity) %>% summarise(n= n(), mean.ct = mean(ct), sd.ct = sd(ct))
+
+lm(mean.ct~log10(quantity), data=qc.means[which(qc.means$target=="N1"),])
+
+i=1
+repeat{
+  cn <- unique(qc$collection_num)[i]
+  
+  cat("\n \n \n")
+  print(cn)
+  
+  cat("\n \n \n N1")
+  try(print(summary(lm(ct~log10(quantity), data=qc[which(qc$target=="N1" & qc$collection_num==cn), ]))))
+  
+  cat("\n \n \n N2")
+  try(print(summary(lm(ct~log10(quantity), data=qc[which(qc$target=="N2" & qc$collection_num==cn), ]))))
+  
+  continue <- readline("Continue?")
+  
+  if(continue==0){break}
+  i = i+1
+}
+
+n1.cn <- 13
+n2.cn <- 24
+
+
+
+qc.by.target <- split(qc, f = qc$target)
+
+qc.by.target.by.collection.number <- lapply(qc.by.target, function(x){split(x, f = x$collection_num)})
+
+qc.standard.curves <- lapply(qc.by.target.by.collection.number, function(x){lapply(x, function(y){lm(ct~log10(quantity), data=y)})})
+
+qc.sc.ests <- lapply(qc.standard.curves, function(x){lapply(x, function(y){c(coef(y), r2=summary(y)$r.squared)})})
+
+qc.sc.ests <- lapply(qc.sc.ests, function(x){bind_rows(x, .id = "CN")}) %>% bind_rows(.id="target")
+
+qc.sc.ests$Efficiency <- 10^(-1/qc.sc.ests$`log10(quantity)`)-1
+
+qc.sc.ests <- qc.sc.ests %>% group_by(target) %>% summarise(`(Intercept)`=paste0(round(mean(`(Intercept)`), 3), " (", round(sd(`(Intercept)`),3), ")"), `log10(quantity)`=paste0(round(mean(`log10(quantity)`),3), " (", round(sd(`log10(quantity)`),3), ")"), r2 = paste0(round(mean(r2),3), " (", round(sd(r2),3), ")"), Efficiency = paste0(round(mean(Efficiency),3), " (", round(sd(Efficiency),3), ")")) %>% ungroup() %>% mutate(CN = "MEAN (SD)") %>% bind_rows(qc.sc.ests%>%mutate_if(is.numeric, ~round(.,3))%>%mutate_all(~as.character(.)), .) %>% arrange(target, CN)
+
+
+
+library(flextable)
+
+as_grouped_data(qc.sc.ests, "target") %>% 
+  flextable() %>% 
+  border_remove() %>% 
+  align(part = "all", align = "right") %>%
+  align(part = "header", align = "center") %>%
+  align(part = "body", j = 1, align = "left") %>%
+  hline(part = "header", i = 1, border = fp_border_default(color = "black", width = 3)) %>%
+  hline(part = "body", i = which(!is.na(as_grouped_data(qc.sc.ests, "target")$target)), border = fp_border_default(color = "black", width = 0.5)) %>% 
+  bold(part = "header") %>%
+  font(part = "all", fontname = "Arial") %>%
+  fontsize(part = "header", size = 12) %>% 
+  fontsize(part = "body", size = 10)%>%
+  line_spacing(part = "all", space = 0.1) %>%
+  autofit()
+ 
+  
+  
+
+                      
+
+```
+
+
+```{r}
+
+
+
+
+
+layout(matrix(c(1,2), nrow = 2), widths = c(lcm(8*2.54)), heights = c(lcm(4.5*2.54), lcm(4.5*2.54)))
+# layout.show(2)
+
+plot(0,type='n',axes=TRUE, ylim = c(20,40), xlim = c(0,5), xlab = "log10(quantity)", ylab = "Cycle Threshold")
+for(i in 1:length(qc.standard.curves$N1)){
+  abline(qc.standard.curves$N1[[i]], lty = 3)
+}
+abline(qc.standard.curves$N1$`13`, lwd = 4)
+points(qc.by.target.by.collection.number$N1$`13`$ct~log10(qc.by.target.by.collection.number$N1$`13`$quantity), cex = 2)
+text(4,37,labels = paste("Ct =",round(coef(qc.standard.curves$N1$`13`)[1],3), round(coef(qc.standard.curves$N1$`13`)[2],3), "*log10(quantity)"))
+title(main = "Standard Curves for N1")
+plot(0,type='n',axes=TRUE, ylim = c(20,40), xlim = c(0,5), xlab = "log10(quantity)", ylab = "Cycle Threshold")
+for(i in 1:length(qc.standard.curves$N2)){
+  abline(qc.standard.curves$N2[[i]], lty = 3)
+}
+abline(qc.standard.curves$N2$`24`, lwd = 4)
+points(qc.by.target.by.collection.number$N2$`24`$ct~log10(qc.by.target.by.collection.number$N2$`24`$quantity), cex = 2)
+text(4,37,labels = paste("Ct =",round(coef(qc.standard.curves$N2$`24`)[1],3), round(coef(qc.standard.curves$N2$`24`)[2],3), "*log10(quantity)"))
+title(main = "Standard Curves for N2")
+```
+
+
+
+```{r}
+# hist(wbe$copy_num_uL_rxn)
+# hist(wbe$copy_num_uL_rxn, breaks = 100)
+# hist(wbe$copy_num_uL_rxn[which(wbe$copy_num_uL_rxn<1)])
+# hist(wbe$copy_num_uL_rxn[which(wbe$copy_num_uL_rxn<1)], breaks = 100)
+# hist(wbe$copy_num_uL_rxn[which(wbe$copy_num_uL_rxn<0.2)])
+# hist(wbe$copy_num_uL_rxn[which(wbe$copy_num_uL_rxn<0.2)], breaks = 100)
+# hist(wbe$copy_num_uL_rxn[which(wbe$copy_num_uL_rxn<0.1)])
+# hist(wbe$copy_num_uL_rxn[which(wbe$copy_num_uL_rxn<0.1)], breaks = 100)
+# 
+# hist(wbe$copies)
+# hist(log(wbe$copies))
+# 
+# hist(log(wbe$copy_num_uL_rxn))
+# 
+# summary(wbe$copy_num_uL_rxn)
+# summary(wbe$copies)
+# summary(wbe$copies[which(wbe$copies>min(wbe$copies, na.rm=T))])
+# 
+# View(wbe[order(wbe$copies),])
+```
+
+
+```{r}
+layout(matrix(c(1,2), nrow = 2), widths = c(lcm(8*2.54)), heights = c(lcm(4.5*2.54), lcm(4.5*2.54)))
+# layout.show(2)
+qqnorm.copies.n1 <- qqnorm(log(wbe$copies[which(wbe$target=="N1")]), main = "Normal Q-Q Plot for N1 log(Copies)") %>% as.data.frame()
+qqnorm.copies.n2 <- qqnorm(log(wbe$copies[which(wbe$target=="N2")]), main = "Normal Q-Q Plot for N2 log(Copies)") %>% as.data.frame()
+
+
+qqnorm.Explorer <- function(qqnorm.copies){
+        qqnorm.copies <- qqnorm.copies[which(complete.cases(qqnorm.copies)),]
+        qqnorm.copies <- qqnorm.copies[order(qqnorm.copies$x),]
+        qqnorm.copies <- cbind(qqnorm.copies, rbind(NA, qqnorm.copies[-nrow(qqnorm.copies),])) %>% setNames(., nm = c("x", "y", "x-1", "y-1"))
+        qqnorm.copies %<>% mutate(rise = y-`y-1`, run = x-`x-1`) %>% mutate(slope = rise / run)
+        
+        qqnorm.copies$lod <- NA
+        qqnorm.copies$loq <- NA
+        
+        prev.slope <- 1
+        lod.found <- 0
+        for(i in 2:nrow(qqnorm.copies)){
+          if(lod.found==0){
+            if(qqnorm.copies$slope[i]<1 & prev.slope <1){
+              qqnorm.copies$lod[i] <- 1
+              lod.found <- 1
+            }else{
+              prev.slope <- qqnorm.copies$slope[i]
+            }
+          }
+          if(lod.found==1){
+            if(qqnorm.copies$slope[i]>1){
+              qqnorm.copies$loq[i] <- 1
+              break
+            }else{
+              prev.slope <- qqnorm.copies$slope[i]
+            }
+          }
+        }
+
+        lod.copies <- qqnorm.copies$y[which(qqnorm.copies$lod==1)]
+        loq.copies <- qqnorm.copies$y[which(qqnorm.copies$loq==1)]
+        
+        return(list(qqnorm.dataset = qqnorm.copies, lod = lod.copies, loq = loq.copies))
+}
+
+qqnorm.copies.n1 <- qqnorm.Explorer(qqnorm.copies.n1)
+qqnorm.copies.n2 <- qqnorm.Explorer(qqnorm.copies.n2)
+
+
+
+layout(matrix(c(1,2), nrow = 2), widths = c(lcm(8*2.54)), heights = c(lcm(4.5*2.54), lcm(4.5*2.54)))
+# layout.show(2)
+qqnorm(log(wbe$copies[which(wbe$target=="N1")]), main = "Normal Q-Q Plot for N1 log(Copies)")
+abline(h = qqnorm.copies.n1$lod)
+text(par('usr')[1], par('usr')[4], labels = paste("LOD =", round(qqnorm.copies.n1$lod,3)), adj = c(-0.05,1.2))
+abline(h = qqnorm.copies.n1$loq, lty = 3)
+text(par('usr')[1], par('usr')[4], labels = paste("LOQ =", round(qqnorm.copies.n1$loq,3)), adj = c(-0.05,2.4))
+legend("bottomright", lty = c(1,3), legend = c("LOD", "LOQ"))
+
+
+qqnorm(log(wbe$copies[which(wbe$target=="N2")]), main = "Normal Q-Q Plot for N2 log(Copies)")
+abline(h = qqnorm.copies.n2$lod)
+text(par('usr')[1], par('usr')[4], labels = paste("LOD =", round(qqnorm.copies.n2$lod,3)), adj = c(-0.05,1.2))
+abline(h = qqnorm.copies.n2$loq, lty = 3)
+text(par('usr')[1], par('usr')[4], labels = paste("LOQ =", round(qqnorm.copies.n2$loq,3)), adj = c(-0.05,2.4))
+legend("bottomright", lty = c(1,3), legend = c("LOD", "LOQ"))
+
+
+
+
+
+layout(matrix(c(1,2), nrow = 2), widths = c(lcm(8*2.54)), heights = c(lcm(4.5*2.54), lcm(4.5*2.54)))
+qqnorm.ct.n1 <- qqnorm(wbe$ct[which(wbe$target=="N1")]) %>% as.data.frame()
+qqnorm.ct.n2 <- qqnorm(wbe$ct[which(wbe$target=="N2")]) %>% as.data.frame()
+
+
+qqnorm.Explorer.ct <- function(qqnorm.ct){
+        qqnorm.ct <- qqnorm.ct[which(complete.cases(qqnorm.ct)),]
+        qqnorm.ct <- qqnorm.ct[order(qqnorm.ct$x),]
+        qqnorm.ct <- cbind(qqnorm.ct, rbind(NA, qqnorm.ct[-nrow(qqnorm.ct),])) %>% setNames(., nm = c("x", "y", "x-1", "y-1"))
+        qqnorm.ct %<>% mutate(rise = y-`y-1`, run = x-`x-1`) %>% mutate(slope = rise / run)
+        
+        qqnorm.ct$lod <- NA
+        qqnorm.ct$loq <- NA
+        
+        prev.slope <- 1
+        lod.found <- 0
+        for(i in nrow(qqnorm.ct):2){
+          if(lod.found==0){
+            if(qqnorm.ct$slope[i]<1 & prev.slope <1){
+              qqnorm.ct$lod[i] <- 1
+              lod.found <- 1
+            }else{
+              prev.slope <- qqnorm.ct$slope[i]
+            }
+          }
+          if(lod.found==1){
+            if(qqnorm.ct$slope[i]>1){
+              qqnorm.ct$loq[i] <- 1
+              break
+            }else{
+              prev.slope <- qqnorm.ct$slope[i]
+            }
+          }
+        }
+        
+        
+        lod.ct <- qqnorm.ct$y[which(qqnorm.ct$lod==1)]
+        loq.ct <- qqnorm.ct$y[which(qqnorm.ct$loq==1)]
+
+        return(list(qqnorm.dataset = qqnorm.ct, lod = lod.ct, loq = loq.ct))
+}
+
+
+
+qqnorm.ct.n1 <- qqnorm.Explorer.ct(qqnorm.ct.n1)
+qqnorm.ct.n2 <- qqnorm.Explorer.ct(qqnorm.ct.n2)
+        
+
+
+layout(matrix(c(1,2), nrow = 2), widths = c(lcm(8*2.54)), heights = c(lcm(4.5*2.54), lcm(4.5*2.54)))
+# layout.show(2)
+qqnorm(wbe$ct[which(wbe$target=="N1")] , main = "Normal Q-Q Plot for N1 Cycle Threshold")
+abline(h = qqnorm.ct.n1$lod)
+text(par('usr')[1], par('usr')[4], labels = paste("LOD =", round(qqnorm.ct.n1$lod,3)), adj = c(-0.05,1.2))
+abline(h = qqnorm.ct.n1$loq, lty = 3)
+text(par('usr')[1], par('usr')[4], labels = paste("LOQ =", round(qqnorm.ct.n1$loq,3)), adj = c(-0.05,2.4))
+legend("bottomright", lty = c(1,3), legend = c("LOD", "LOQ"))
+
+
+qqnorm(wbe$ct[which(wbe$target=="N2")] , main = "Normal Q-Q Plot for N2 Cycle Threshold")
+abline(h = qqnorm.ct.n2$lod)
+text(par('usr')[1], par('usr')[4], labels = paste("LOD =", round(qqnorm.ct.n2$lod,3)), adj = c(-0.05,1.2))
+abline(h = qqnorm.ct.n2$loq, lty = 3)
+text(par('usr')[1], par('usr')[4], labels = paste("LOQ =", round(qqnorm.ct.n2$loq,3)), adj = c(-0.05,2.4))
+legend("bottomright", lty = c(1,3), legend = c("LOD", "LOQ"))
+
+
+
+
+# n1 ct --> copies
+# > 10^((37.14072-34.008)/-3.3890)
+# [1] 0.1190203
+# > 10^((36.96446-34.008)/-3.3890)
+# [1] 0.1341623
+
+# n2 ct --> copies
+# > 10^((37.09759-32.416)/-3.3084)
+# [1] 0.03845372
+# > 10^((36.99855-32.416)/-3.3084)
+# [1] 0.04119782
+
+
+# n1 copies
+# > exp(lod.copies.n1)
+# [1] 0.1194078
+# > exp(loq.copies.n1)
+# [1] 0.1379563
+
+# n2 copies
+# > exp(loq.copies.n2)
+# [1] 0.04412582
+# > exp(lod.copies.n2)
+# [1] 0.03863563
+
+
+
+
+
+```
+
 
 ```{r}
 wbe.summary.tr <- wbe %>% 
@@ -192,6 +516,51 @@ colnames(bar.data) <- paste(prop.detect$facility, prop.detect$target, sep=" - ")
 
 barplot(bar.data, legend = rownames(bar.data))
 ```
+
+
+
+```{r}
+layout(1)
+wbe_covid <- full_join(wbe, covid, by = c("sample_date" = "symptom.date"))
+
+plot(wbe_covid$cases~wbe_covid$copies)
+plot(wbe_covid$cases~log(wbe_covid$copies))
+plot(wbe_covid$cases~wbe_covid$copy_num_uL_rxn)
+plot(wbe_covid$cases~log(wbe_covid$copy_num_uL_rxn))
+
+plot(wbe_covid$moving_avg_cases~wbe_covid$copies)
+plot(wbe_covid$moving_avg_cases~log(wbe_covid$copies))
+
+
+wbe_covid %<>% 
+  group_by(sample_date, target, facility, biological_replicate, cases, moving_avg_cases) %>% 
+  summarise(copies = mean(copy_num_uL_rxn, na.rm=T)) %>% 
+  ungroup() %>% 
+  group_by(sample_date, target, facility, cases, moving_avg_cases) %>% 
+  summarise(copies = exp(mean(log(copies), na.rm = T))) %>% 
+  ungroup() %>% 
+  group_by(sample_date, target, cases, moving_avg_cases) %>% 
+  summarise(copies = sum(copies, na.rm = T)) %>% 
+  ungroup() %>% 
+  group_by(sample_date, cases, moving_avg_cases) %>% 
+  summarise(copies = mean(copies, na.rm = T))
+
+
+
+plot(wbe_covid$cases~wbe_covid$copies)
+plot(wbe_covid$moving_avg_cases~wbe_covid$copies)
+plot(wbe_covid$cases~log(wbe_covid$copies))
+plot(wbe_covid$moving_avg_cases~log(wbe_covid$copies))
+
+```
+
+
+
+
+
+
+
+
 
 
 
