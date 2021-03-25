@@ -13,7 +13,7 @@ weather_data = read.csv("./data/raw_data/weather_data_noaa_athens.csv")
 
 #Generate Sampling Data Set
 #Sampling Data 
-sample_data = data.frame("collection_num" = 5:50, "date" = c("2020-06-16", "2020-06-23", "2020-06-30", "2020-07-07", "2020-07-14", "2020-07-21", "2020-07-28", 
+sample_data = data.frame("collection_num" = 5:62, "date" = c("2020-06-16", "2020-06-23", "2020-06-30", "2020-07-07", "2020-07-14", "2020-07-21", "2020-07-28", 
                                                              "2020-08-04", "2020-08-11", "2020-08-18", "2020-08-25", "2020-09-01", 
                                                              "2020-09-08", "2020-09-15", "2020-09-22", "2020-09-29", 
                                                              "2020-10-06", "2020-10-13", "2020-10-20", "2020-10-27",
@@ -23,7 +23,10 @@ sample_data = data.frame("collection_num" = 5:50, "date" = c("2020-06-16", "2020
                                                              "2020-12-14", "2020-12-16", "2020-12-21", "2020-12-23", 
                                                              "2020-12-28", "2021-01-04", "2021-01-11", "2021-01-13", 
                                                              "2021-01-19", "2021-01-20", "2021-01-25", "2021-01-27", 
-                                                             "2021-02-01", "2021-02-03"), stringsAsFactors = FALSE)
+                                                             "2021-02-01", "2021-02-03", "2021-02-08", "2021-02-10", 
+                                                             "2021-02-15", "2021-02-17", "2021-02-22", "2021-02-24", 
+                                                             "2021-03-01", "2021-03-03", "2021-03-08", "2021-03-10", 
+                                                             "2021-03-15", "2021-03-17"), stringsAsFactors = FALSE)
 sample_data$date = as.Date(sample_data$date)
 sample_data$collection_num = as.character(sample_data$collection_num)
 
@@ -50,49 +53,6 @@ case_data$date = as.Date(case_data$date, "%m/%d/%Y")
 names(weather_data)[1] = "date"
 weather_data$date = as.character(weather_data$date)
 weather_data$date = as.Date(weather_data$date, "%m/%d/%Y")
-
-
-#Let's determine the number of positive wells per sample, per week. 
-
-#by_wells = n1_n2
-#by_wells$pos_neg = by_wells$ct
-#by_wells$pos_neg = as.factor(by_wells$pos_neg)
-#by_wells$pos_neg = fct_recode(by_wells$pos_neg, negative = "Undetermined") 
-#by_wells$pos_neg = fct_other(by_wells$pos_neg, keep = c("negative"))
-#by_wells$pos_neg = fct_recode(by_wells$pos_neg, positive = "Other") 
-
-#by_wells = by_wells %>% select(collection_num, sample_id, pos_neg, target)
-#by_wells = by_wells %>% separate(col = sample_id, into = c("wrf","collection_num", "rep_id"), sep = "_")
-#by_wells = left_join(by_wells, sample_data, by = c("collection_num"))
-
-
-#by_wells %>% ggplot(aes(fill = pos_neg, x= date)) + 
- # geom_bar(position = "fill") + 
-#scale_fill_manual(values=c("grey", "red4"))
-
-
-#Let's determine the number of positive samples per week. Let's average the replicates. 
-#If the average of the replicates > 0.0002000 * 3, then consider this sample positive
-
-#by_wells = n1_n2
-#by_wells = plyr::ddply(by_wells,.(sample_id, target, run_num),plyr::summarize, copy_num_uL_rxn = mean(copy_num_uL_rxn)) 
-
-#by_wells$pos_neg = as.factor(by_wells$copy_num_uL_rxn)
-#by_wells$pos_neg = fct_recode(by_wells$pos_neg, negative = "2e-04") 
-#by_wells$pos_neg = fct_other(by_wells$pos_neg, keep = c("negative"))
-#by_wells$pos_neg = fct_recode(by_wells$pos_neg, positive = "Other") 
-
-#by_wells = left_join(by_wells, sample_data, by = c("collection_num"))
-#by_wells = plyr::ddply(by_wells,.(wrf, collection_num, rep_id),plyr::summarize, copy_num_uL_rxn = mean(copy_num_uL_rxn)) 
-#by_wells$pos_neg = as.factor(by_wells$copy_num_uL_rxn)
-#by_wells$pos_neg = fct_recode(by_wells$pos_neg, negative = "2e-04") 
-#by_wells$pos_neg = fct_other(by_wells$pos_neg, keep = c("negative"))
-#by_wells$pos_neg = fct_recode(by_wells$pos_neg, positive = "Other") 
-
-#by_wells %>% ggplot(aes(fill = pos_neg, x= date)) + 
- # geom_bar() + 
-  #scale_fill_manual(values=c("grey", "red4"))  
-
 
 
 #Now, take the average of the replicates 
