@@ -1,0 +1,11 @@
+﻿site_id,description,type,basin,num_residents,est_num_res,manhole_id,lat,long
+SL_A,hull_hoyt,housing_authority,NO,337,337,F10-268,33.96396,-83.379651
+SL_E,nellieb,housing_authority,NO,583,583,F12-99,33.959994,-83.3532
+SL_F,towneview,housing_authority,NO,393,393,G11-103,33.948801,-83.365004
+SL_G,broad_909,student_apt,NO,1000,1000,F11-386,33.95909,-83.368494
+SL_H,riverbend,student_apt,CC,4000,1000,I11-39,33.91681,-83.366782
+SL_I,whitehall,general,CC,675,675,J12-162,33.908466,-83.352802
+SL_J,shoal_creek,general,NO,250,250,H12-71,33.931772,-83.350196
+SL_K,morningside,nursing_home,CC,66,66,I13-177,33.923584,-83.328233
+SL_L,orchard,nursing_home,MI,85,85,G7-285,33.947296,-83.434387
+SL_Y,brumby_hall,dorm,MI,1000,1000,Campus,,

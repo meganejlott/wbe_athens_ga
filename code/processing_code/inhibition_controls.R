@@ -7,13 +7,12 @@ library(dplyr)
 
 
 #Load Data 
-inhibition_data = read.csv("./data/raw_data/inhibition_controls.csv")
-rna_controls = read.csv("./data/raw_data/rna_controls.csv")
+inhibition_data = read.csv("./data/raw_data/QC/inhibition_controls.csv")
+rna_controls = read.csv("./data/raw_data/QC/rna_controls.csv")
 
 
 
 inhibition_data = plyr::ddply(inhibition_data,.(sample_name, sample_type),plyr::summarize, ct_ave = mean(ct)) 
-p_meds <- ddply(inhibition_data, .(sample_type), summarise, med = median(ct_ave))
 
 
 inhibition_data %>% ggplot(aes(x = sample_type, y = ct_ave)) + 

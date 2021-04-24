@@ -72,3 +72,9 @@ ggplot() +
   ylim(0,100) +
   facet_wrap(~wrf, ncol = 1)
 
+recovery_calc %>% ggplot() + geom_violin(aes(x = 1, y = percent_recovery)) + 
+  geom_jitter(aes(x = 1, y = percent_recovery)) + 
+  ylab("Percent Recovery") + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
