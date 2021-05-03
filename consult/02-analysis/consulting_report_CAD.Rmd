@@ -5,7 +5,6 @@ author:
   - Cody Dailey [^epibios] & Megan Lott [^ehsc]
   - Erin Lipp ^2^ & Stephen Rathbun ^1^
 
-
 link-citations: yes
 date: '`r format(Sys.Date(), "%d %B %Y")`'
 output: 
@@ -22,7 +21,6 @@ nocite: "@*"
 
 editor_options: 
   chunk_output_type: console
-
 ---
 
 [^epibios]:Department of Epidemiology and Biostatistics, University of Georgia, Athens, GA, USA
@@ -36,7 +34,7 @@ knitr::opts_chunk$set(echo = TRUE, cache = TRUE, fig.width = 6, fig.height = 6*9
 \newpage
 # Preface {-}
 
-This document will serve as a report among collaborators working on the analysis of wastewater surveillance data as part of a biostatistical consulting course (BIOS8200) instructed by Dr. Stephen Rathbun. The wastewater surveillance project was designed and implemented by Dr. Erin Lipp and her environmental health doctoral students, Megan Lott and William Norfolk. Megan Lott acts as the primary "client" for correspondence with lead "consultant" Cody Dailey, under the supervision of Dr. Stephen Rathbun and with meaningful discussion among other course consultants: Nicholas Mallis, Amanda Skarlupka, Morgan Taylor, and Adrianna Westbrook.
+This document will serve as a report among collaborators working on the analysis of wastewater surveillance data as part of a biostatistical consulting course (BIOS8200) instructed by Dr. Stephen Rathbun. The wastewater surveillance project was designed and implemented by Dr. Erin Lipp and her environmental health doctoral students, Megan Lott and William Norfolk, and other members of the Lipp lab. Megan Lott acts as the primary "client" for correspondence with lead "consultant" Cody Dailey, under the supervision of Dr. Stephen Rathbun and with meaningful discussion among other course consultants: Nicholas Mallis, Amanda Skarlupka, Morgan Taylor, and Adrianna Westbrook.
   
 The report is structured to highlight the analytic workflow from raw data management through analysis techniques. Particular attention is given to analytic options and decision-making to expand on reproducibility. This report does *not* mimic the structure found in scientific manuscripts. Rather and analogously, it will be more detailed and comprehensive *methods* and *results* sections with commentary and coding descriptions. 
   
@@ -127,14 +125,14 @@ rm(my.packages)
 ## Overview of Wastewater Sampling, Processing, and Analysis with Resulting Data
 
 As part of the wastewater surveillance, three Athens-Clarke County (ACC) water reclamation facilities yield water samples. The sampling frequency varies across the study. Initially, samples were taken weekly, but later the sampling frequency was twice weekly (on Mondays and Wednesdays). However, there remained some irregularity in the sampling frequency (further discussed in Section \@ref(missingness)). 
-    
-Initially, two water samples for each facility were taken at each sampling time, but the study design shifted to collecting three samples for most of the study duration; these redundant samples are referred to as biological replicates.     
-    
-Each wastewater sample was processed and analyzed via a reverse transcription quantitative polymerase chain reaction (RT-qPCR) -based laboratory workflow required for the enumeration of SARS-CoV-2 in the wastewater samples. Briefly, viral genetic material (i.e., ribonucleic acid (RNA)) was extracted from the wastewater samples, used as a template to generate complementary deoxyribonucleic acid (DNA) which was then serially amplified to determine the concentration of viral genetic material from the original sample. This RT-qPCR workflow is done both in duplicate for two separate genetic sequence targets/primers (N1 and N2) and, for each sequence target, in triplicate (at least) for additional redundancies; these triplicate experiments are referred to as technical replicates.     
-    
+      
 Overall, the *three* wastewater reclamation facilities yield approximately *three* 24-hour composite water samples for a single sampling time. The three biological replicates each serve as a source for RT-qPCR experiments. The experiments use amplification primers for *two* viral sequence targets, N1 and N2, and for each primer *three* replicate experiments are conducted. So, for any given sampling time, there should be approximately 3x3x2x3=54 RT-qPCR results.
-  
-More comprehensive documentation on data and methodology is found at the University of Georgia (UGA) Center for the Ecology of Infectious Disease (CEID) [COVID-19 Portal: Wastewater Surveillance for SARS-CoV-2 in Athens, GA](https://www.covid19.uga.edu/wastewater-athens.html) and at the [Lipp Laboratory Protocol for Wastewater Surveillence of SARS-CoV-2](https://docs.google.com/document/d/1vvRGrvR5iF3P6d40tKPjUpOZBBKGz_OZAr9Z5xJiCKw/edit). 
+      
+Initially, two water samples for each facility were taken at each sampling time, but the study design shifted to collecting three samples for most of the study duration; these redundant samples are referred to as biological replicates.     
+      
+Each wastewater sample was processed and analyzed via a reverse transcription quantitative polymerase chain reaction (RT-qPCR) -based laboratory workflow required for the enumeration of SARS-CoV-2 in the wastewater samples. Briefly, viral genetic material (i.e., ribonucleic acid (RNA)) was extracted from the wastewater samples and used as a template to generate complementary deoxyribonucleic acid (DNA) which was then serially amplified to determine the concentration of viral genetic material from the original sample. This RT-qPCR workflow is done both in duplicate for two separate genetic sequence targets/primers (N1 and N2) and, for each sequence target, in triplicate (at least) for additional redundancies; these triplicate experiments are referred to as technical replicates.     
+      
+More comprehensive documentation on data and methodology is found at the University of Georgia (UGA) Center for the Ecology of Infectious Disease (CEID) [COVID-19 Portal: Wastewater Surveillance for SARS-CoV-2 in Athens, GA](https://www.covid19.uga.edu/wastewater-athens.html) and at the [Lipp Laboratory Protocol for Wastewater Surveillance of SARS-CoV-2](https://docs.google.com/document/d/1vvRGrvR5iF3P6d40tKPjUpOZBBKGz_OZAr9Z5xJiCKw/edit). 
     
 
 
@@ -182,9 +180,9 @@ n2 <- read_csv("./data/raw_data/n2_all_cleaned2.csv")
     
 ## Reaction Calibration Data
   
-In addition to the RT-qPCR runs of the water samples with unknown viral loads, positive controls are run as a means by which to calibrate the conversion equations for the RT-qPCRs. That is, water samples are "spiked" with known concentrations of viral sequence targets (N1 or N2) or a related sequence (orthologous or paralogous?) such as Bovine Coronovirus genes (not included in the current analyses). These data are needed to estimate reaction efficiency and in the calculations that convert RT-qPCR output Ct values to estimations of viral load (e.g., number of viral genetic copies per volume of water sample)
+In addition to the RT-qPCR runs of the water samples with unknown viral loads, positive controls are run as a means by which to calibrate the conversion equations for the RT-qPCRs. That is, water samples are "spiked" with known concentrations of viral sequence targets (N1 or N2) or a related sequence (orthologous or paralogous?) such as Bovine Coronavirus genes (not included in the current analyses). These data are needed to estimate reaction efficiency and in the calculations that convert RT-qPCR output Ct values to estimations of viral load (e.g., number of viral genetic copies per volume of water sample)
   
-These two lines of code were used to read in the quality-control data required for the standard curves:
+The following two lines of code were used to read in the quality-control data required for the standard curves:
   
 ```{r data2, echo=T, message=F, warning=F, error=F}
 qc <- read_csv("./data/raw_data/QC/all_curves.csv")
@@ -345,7 +343,7 @@ sf.bio.facility <- sf %>% select(1:3) %>% pivot_wider(names_from = facility, val
 
 
 ```{r sf, echo = F, message=F, warning=F, error=F, fig.height=6*9/16*1.75, fig.cap = "Sampling Frequency of Wastewater: Number of Days Between Samples"}
-
+# png(filename = "./consult/03-output/for-pres/sampling_frequency.png", width = 16, height = 9, units = "in", res = 300, pointsize = 16)
 par(mar = c(3.1, 7.1, 4.1, 2.1))
 
 plot(sf.bio.facility$sample_date, sf.bio.facility$tsls, type = "l", pch = 16, axes = F, xlab = '', ylab = '')
@@ -375,7 +373,7 @@ title(ylab = "Frequency", cex.lab = 0.6, line = 6.5)
 
 legend("bottomleft", pch = c("M", "T", "W", "R"), legend = c("Monday", "Tuesday", "Wednesday", "Thursday"), cex = 0.7, pt.lwd = rep(4,4))
 
-
+# dev.off()
 
 
 ```
@@ -386,6 +384,9 @@ Figure \@ref(fig:nsamples) shows the number of 24-hour composite wastewater samp
 
 
 ```{r nsamples, echo = F, message=F, warning=F, error=F, fig.height=6*9/16*2, fig.cap="Number of 24-hour Composite Wastewater Samples from Reclamation Facilities across the Study"}
+
+# png(filename = "./consult/03-output/for-pres/observations_profile.png", width = 16, height = 9, units = "in", res = 300, pointsize = 16)
+par(mar = c(3.1, 3.1, 1.1, 1.1))
 plot(sf.bio.facility$sample_date, sf.bio.facility$CC, ylim = c(0, 4.3), pch = 0, axes = F, xlab = '', ylab = '')
 points(sf.bio.facility$sample_date, sf.bio.facility$MI+0.15, pch = 1)
 points(sf.bio.facility$sample_date, sf.bio.facility$NO-0.15, pch = 2)
@@ -399,6 +400,7 @@ axis(2, at = seq(0,4, by=1), cex.axis = 0.5, las = 1)
 title(xlab = "Sampling Date", ylab = "Number of Wastewater Samples", cex.lab = 0.6, line=2)
 legend("bottomright", pch = 0:2, legend = c("CC", "MI", "NO"), cex = 0.7)
 box()
+# dev.off()
 ```
 
 
@@ -624,7 +626,7 @@ The last column in Table \@ref(tab:prop-detect) shows the percentage of all tech
 [^potential-errors]:Upon closer examination to the data, I may have uncovered a potential data entry error. For the Cedar Creek samples, there are uncrossed biological replicates with respect to viral sequence targets. For example, there are 3 technical replicates for each of 3 biological replicates for Cedar Creek on 18 November 2020; however, these records only exist for the N1 sequence target. Similarly, there are 9 records for Cedar Creek on 19 November 2020, but these are only for the N2 sequence target. I suspect these experimental units are from the same biological samples collected on the same day and that the 18 v 19 date is a simple entry error. There may be other entry errors, though. Closer inspection of the x-axes for Figures \@ref(fig:all-miss), \@ref(fig:target-miss), and \@ref(fig:facility-miss) may shed some light on the matter. 
 
 
-(ref:barplot-caption) Barplot of Proportions Undetermined. Here, D, B, & T refer to sampling dates, biological replicates, and technical replicates, respectively. N1 & N2 refer to the viral sequence targets. CC, MI, & NO refer to the wastewater reclamation facilities Cedar Creek, Middle Oconee, and North Oconee, respectively. 
+(ref:barplot-caption) Barplot of Proportions Undetermined. Here, D, B, & T refer to sampling dates, biological replicates, and technical replicates, respectively. N1 & N2 refer to the viral sequence targets. CC, MI, & NO refer to the wastewater reclamation facilities Cedar Creek, Middle Oconee, and North Oconee, respectively.
 
 
 
@@ -648,7 +650,7 @@ title(ylab = "Proportion Undetermined Values")
 ```
 
 
-To further explore the missingness and observed differences with respect to the viral sequence target and wastewater reclamation facility, logistic regression models were fit predicting the missing-data indicator from viral sequence target and wastewater reclamation facility.[^binomial] Table \@ref(tab:fit-tab) shows extensive results of these logistic regression models. 
+To further explore the missingness and observed differences with respect to the viral sequence target and wastewater reclamation facility, logistic regression models were fit predicting the missing-data indicator from viral sequence target and wastewater reclamation facility.[^binomial] Table \@ref(tab:fit-tab) shows the results of these logistic regression models. 
   
 [^binomial]:The logistic regression models used the cbind() designation of a binomial for the response variable. The models were fit on the data used to generate Table \@ref(tab:prop-detect). For example, the frequency of undetermined results aggregated to the sampling date for Cedar Creek and the N1 sequence target is 9 out of 41 total sampling dates. So, the model used the "missing" values and "non-missing" values to form the response, e.g., `cbind(9, 32)` for Cedar Creek and the N1 sequence target. Similarly, for all combinations of wastewater reclamation facility and viral sequence target, the variables for the frequency of missing and non-missing observations were combined using cbind() which served as the response variable in the models. This grouped binomial designation is equivalent in estimation as the more common 0 / 1 coding in logistic regression. 
   
@@ -747,13 +749,15 @@ flextable(fit.tab) %>%
   bold(part = "body", j=6, i = c(13,15)) %>% 
   bold(part = "body", j=4, i = c(22,25)) %>% 
   italic(part = "body", j=4, i = 26) %>%
-  set_caption(caption = "Logistic Regression for Undetermined RT-qPCR Results on Viral Sequence Target and Wastewater Reclamation Facility") %>% 
+  set_caption(caption = "(ref:logmodels)") %>% 
   compose(part="body", j=4, i=1, value = as_paragraph("P\U0302 of Sampling Days in which All Results were Undetermined")) %>% 
   compose(part="body", j=5, i=1, value = as_paragraph("P\U0302 of Biological Replicates in which All Results were Undetermined")) %>%
   compose(part="body", j=6, i=1, value = as_paragraph("P\U0302 of Technical Replicates with All Undetermined Results"))
 ```
 
-Table \@ref(tab:fit-tab)A gives probability estimates from the logistic regression models for the missing frequencies, Table \@ref(tab:fit-tab)B shows the results of analyses of deviance, and Table \@ref(tab:fit-tab)C gives estimated odds ratios.     
+
+(ref:logmodels) Logistic Regression for Undetermined RT-qPCR Results on Viral Sequence Target and Wastewater Reclamation Facility. A gives probability estimates from the logistic regression models for the missing frequencies; B shows the results of analyses of deviance; and C gives estimated odds ratios.
+
     
 Interestingly, the facility was determined to have had some effect on the frequencies of undetermined results for the data at the biological replicate level ($\chi^2$ = `r round(fit.bio.aov[2,1], 1)`, df = 2, p = `r round(fit.bio.aov[2,3], 3)`) and the technical replicate level ($\chi^2$ = `r round(fit.tech.aov[2,1], 1)`, df = 2, p = `r round(fit.tech.aov[2,3], 3)`) after controlling for sequence target. No significant differences were observed for the data aggregated at the sampling date level ($\chi^2$ = `r round(fit.day.aov[2,1], 1)`, df = 2, p = `r round(fit.day.aov[2,3], 3)`), but this is not surprising as the artificial reduction in sample size likely reduced the power of the analysis. The viral sequence target does not exhibit evidence of having any impact on "missing" data (p = `r round(fit.day.aov[1,3], 3)`, `r round(fit.bio.aov[1,3], 3)`, and `r round(fit.tech.aov[1,3], 3)` for analyses of sampling dates, biological replicates, and technical replicates, respectively); that is, the frequencies of undetermined experimental values are indistinguishable between N1 and N2 at each level while controlling for facility. The differences among facilities appears to be mostly the result of lower frequencies (lower estimated odds) of undetermined values for the Middle Oconee wastewater reclamation facility when compared with Cedar Creek for both analyses at the biological and technical replicate levels. Notably, the estimated odds ratio comparing undetermined values in North Oconee to Cedar Creek is *marginally* significant for the analyses of technical replicates (i.e., its confidence interval just barely includes the null value so it is inconclusive whether North Oconee's missingness differs from that of Cedar Creek). It seems that Cedar Creek samples are more likely to yield undetermined results from the RT-qPCR experiments.
   
@@ -771,7 +775,7 @@ The limit of detection refers to a threshold where a positive sample (i.e., one 
 
 Theoretically, it may be possible to calculate a limit of detection through considerations of the experimental procedure alone.[^lower-bound] The RT-qPCR workflow begins with the water / sewage sample from which 280 microliters, $\mu L$, is used in RNA extraction. Following, the RNA is eluted into 60 $\mu L$ of a buffer solution. Three $\mu L$ of the 60 $\mu L$ of RNA-in-buffer is added to a reverse transcription reaction of 25 $\mu L$. Finally, 2 $\mu L$ of the reverse transcription reaction product is transferred to 20 $\mu L$ wells. These 25 $\mu L$ product of the reverse transcription reaction is distributed in ~2 $\mu L$ quantities for three technical replicates for each viral sequence target; the remainder is used in controls.[^description-flaws]   
   
-Altogether, these quantities are important for understanding the dilution scheme imposed by the lab procedures which can then be used in calculating the theoretical limit of detection (Equation \@ref(eq:dilution)). In words, if there was a ***single*** viral sequence copy within our sample, then we can track the copy through the dilution to calculate the concentration that used in the PCR amplifications: 
+Altogether, these quantities are important for understanding the dilution scheme imposed by the lab procedures which can then be used in calculating the theoretical limit of detection (Equation \@ref(eq:dilution)). In words, if there was a ***single*** viral sequence copy within our sample, then we can track the copy through the dilution to calculate the concentration that is used in the PCR amplifications: 
 
 \begin{equation}
   Theoretical~LOD = \frac{1~viral~copy}{60\mu L} \times \frac{3\mu L}{25\mu L} \times \frac{2\mu L}{20\mu L} = 0.0002~copies~ \mu L^{-1} ~of~reaction.
@@ -874,7 +878,7 @@ axis(1, at = -3:3, tick = T, labels = T, cex.axis = 0.7, line = 0, padj = -1.75,
 title(xlab = "Theoretical Quantiles", line = 1)
 
 axis(2, at = 32:39, tick = T, labels = T, cex.axis = 0.7, line = 0, hadj = 0.25, tck = -0.0125, las = 1)
-title(ylab = "Observed Cyle Thresholds", line = 1.25)
+title(ylab = "Observed Cycle Thresholds", line = 1.25)
 
 abline(h = qqnorm.ct.n1$lod)
 text(par('usr')[1], par('usr')[4], labels = paste("LOD =", round(qqnorm.ct.n1$lod,3)), adj = c(-0.05,1.2))
@@ -898,7 +902,7 @@ axis(1, at = -3:3, tick = T, labels = T, cex.axis = 0.7, line = 0, padj = -1.75,
 title(xlab = "Theoretical Quantiles", line = 1)
 
 axis(2, at = 33:39, tick = T, labels = T, cex.axis = 0.7, line = 0, hadj = 0.25, tck = -0.0125, las = 1)
-title(ylab = "Observed Cyle Thresholds", line = 1.25)
+title(ylab = "Observed Cycle Thresholds", line = 1.25)
 
 
 abline(h = qqnorm.ct.n2$lod)
@@ -1310,14 +1314,14 @@ a rearrangement of Equation \@ref(eq:sc-fit)). Substituting our fit estimates fo
   (\#eq:ct-seqs)
 \end{equation}
 
-for both viral sequence targets, N1 and N2, respectively. The concentrations yielded from Equation \@ref(eq:ct-seqs) would be in units $copies~ per ~\mu L~of~reaction$. We need to take into consideration the dilution scheme (Equation \@ref(eq:dilution)) to have the units be simply $copies~per~\mu L$. 
+for the viral sequence targets, N1 and N2, respectively. The concentrations yielded from Equation \@ref(eq:ct-seqs) would be in units $copies~ per ~\mu L~of~reaction$. We need to take into consideration the dilution scheme (Equation \@ref(eq:dilution)) to have the units be simply $copies~per~\mu L$. 
 
 
 
 
 ## Data Adjustment using Limits of Detection and Quantification
 
-It is relatively common to use the limit of detection or some fraction thereof to replace undetermined results within the data. For the purposes of this analysis we will use a generic approach to replace the missing results (or those that fall below the estimated LOD) with half of the LOD value (i.e., LOD / 2). Similarly, we will replace those values that fall between the LOD and LOQ with half of the LOQ value (i.e., LOQ / 2). Figure \@ref(fig:b-and-a) shows the histograms of the natural logarithm of estimated copies per microliter before (panels A and B) and after (panels C and D) replacing the values as previously described. Similar to Figure \@ref(fig:ct-hist), the histograms in panels A and B of Figure \@ref(fig:b-and-a) show that the data deviate from a normal distribution, even after the normalizing natural logarithm transformation. Also similar, we can observe the points points of interest within the distribution that indicate limits of detection and quantification (highlighted with the vertical bars). Panels C and D of Figure \@ref(fig:b-and-a) show these same histograms after the data were adjusted using the LODs and LOQs. Note that, due to the extensive missingness, the replaced values dominate the distribution.
+It is relatively common to use the limit of detection or some fraction thereof to replace undetermined results within the data. For the purposes of this analysis we will use a generic approach to replace the missing results (or those that fall below the estimated LOD) with half of the LOD value (i.e., LOD / 2). Similarly, we will replace those values that fall between the LOD and LOQ with half of the LOQ value (i.e., LOQ / 2). Figure \@ref(fig:b-and-a) shows the histograms of the natural logarithm of estimated copies per microliter before (panels A and B) and after (panels C and D) replacing the values as previously described. Similar to Figure \@ref(fig:ct-hist), the histograms in panels A and B of Figure \@ref(fig:b-and-a) show that the data deviate from a normal distribution, even after the normalizing natural logarithm transformation. Also similar, we can observe the points of interest within the distribution that indicate limits of detection and quantification (highlighted with the vertical bars). Panels C and D of Figure \@ref(fig:b-and-a) show these same histograms after the data were adjusted using the LODs and LOQs. Note that, due to the extensive missingness, the replaced values dominate the distributions.
 
 ```{r, echo = F, message=F, warning=F, error=F}
 n1.int <- qc.sc.ests$`(Intercept)`[which(qc.sc.ests$target=="N1" & qc.sc.ests$CN==n1.cn)]
@@ -1380,7 +1384,7 @@ wbe2 <- wbe %>%
 ```
 
 
-(ref:copy-hists) Histograms of the Natural Logarithm of Sample Viral Sequence Copy Concentrations. Panels A and B show the histograms for N1 and N2, respectively, before any adjustments were made. Panels C and D show the histograms for N1 and N2, respectively, after values which were either undetermined or fell below the LOD were replaced with half of the LOD and, similarly, values which fell between the LOD and LOQ were replaced with half of the LOQ. 
+(ref:copy-hists) Histograms of the Natural Logarithm of Sample Viral Sequence Copy Concentrations. Panels A and B show the histograms for N1 and N2, respectively, before any adjustments were made. Panels C and D show the histograms for N1 and N2, respectively, after values which were either undetermined or fell below the LOD were replaced with half of the LOD and, similarly, values which fell between the LOD and LOQ were replaced with half of the LOQ.
 
 
 ```{r b-and-a, echo = F, message=F, warning=F, error=F, fig.height=6*9/16*2, fig.cap = "(ref:copy-hists)"}
@@ -1936,7 +1940,7 @@ dev.off()
 \newpage
 # It's All Clumping Together... {#correlation}
 
-The ultimate goal of this project was to assess the predictability of COVID-19 cases given the wastewater-based epidemiological surveillance for SARS-CoV-2. Essentially, we will explore the associations between the case counts and the viral loads in wastewater samples. Since we have a hierarchical dataset for the RT-qPCR results, we can take a couple different approaches with the data. We could use the data at any one of the hierarchy levels, but as the unit of analysis gets smaller, the model complexity increases where at the technical replicate level we would likely need to control for the correlation among replicates of the same sample and location. If we were to take a meaningful summary of RT-qPCR results for every given sampling time, then we would effectively remove the additional sources correlation among observations. The correlations among the different replicates will impact the uncertainty but will not impact averages. Furthermore, since the data are time series, we should address potential autocorrelation in the time of the samples. Of note, this approach of summarization to a single viral load estimate per sampling date could contribute to a loss of information from those lower levels of data, but this may be minimal given an appropriate summarization. 
+The ultimate goal of this project was to assess the predictability of COVID-19 cases given the wastewater-based epidemiological surveillance for SARS-CoV-2. So, we will explore the associations between the case counts and the viral loads in wastewater samples. Since we have a hierarchical dataset for the RT-qPCR results, we can take a couple different approaches with the data. We could use the data at any one of the hierarchy levels, but as the unit of analysis gets smaller, the model complexity increases where at the technical replicate level we would likely need to control for the correlation among replicates of the same sample and location. If we were to take a meaningful summary of RT-qPCR results for every given sampling time, then we would effectively remove the additional sources correlation among observations. The correlations among the different replicates will impact the uncertainty but will not impact averages. Furthermore, since the data are time series, we should address potential autocorrelation in the time of the samples. Of note, this approach of summarization to a single viral load estimate per sampling date could contribute to a loss of information from those lower levels of data, but this may be minimal given an appropriate summarization. 
 
 
 ## Determining an Appropriate Summarization Scheme
