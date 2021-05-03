@@ -1,0 +1,9 @@
+base
+dplyr
+readr
+readxl
+magrittr
+knitr
+openxlsx
+flextable
+tidyr
