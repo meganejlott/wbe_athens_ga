@@ -1,0 +1,63 @@
+Analysis started: Sat Apr 24 16:59:50 2021
+
+
+Potential outliers have been detected. Please review the data exported as
+        Potential-Outliers.csv, and determine if any data points need to be excluded
+        or adjusted due to false positives or poorly normalized baselines.
+
+
+Data Summary:
+"Standards"	"Target"	"Reps"	"Detects"	"Cq.mean"	"Cq.sd"	"Copy.CV"	"Cq.CV"	"Rate"
+4000	"N1"	57	57	22.1046067619298	1.25412338388351	0.781283536809465	1.06256049450636	1
+400	"N1"	57	57	25.3823363324561	1.31700751282007	0.848481885060664	1.14062008744353	1
+40	"N1"	57	57	27.5832315075439	1.32155548711556	0.895394628105269	1.14643751717601	1
+4	"N1"	57	57	30.7221368152632	1.68523070586872	1.04840752295581	1.70696158082496	1
+4000	"N2"	84	84	21.8842631520238	1.41251719385114	0.756227374260358	1.26808845020533	1
+400	"N2"	81	81	25.6360970482716	1.37712894556619	0.899982714681987	1.21952231056368	1
+40	"N2"	84	84	27.7803168527381	1.64811183940012	1.61208803020259	1.63946383675141	1
+4	"N2"	80	80	30.78844475775	1.87935707882047	1.1649505205487	2.11122893375829	1
+
+
+For N1, the lowest standard with 95% or greater detection is: 4 copies/reaction.
+
+WARNING: LoD cannot be determined for N1, because it is lower than the lowest standard you tested.
+Report as <4 copies/reaction, or retest with lower concentrations.
+
+
+
+
+For N2, the lowest standard with 95% or greater detection is: 4 copies/reaction.
+
+WARNING: LoD cannot be determined for N2, because it is lower than the lowest standard you tested.
+Report as <4 copies/reaction, or retest with lower concentrations.
+
+
+WARNING: For N1, all standards detected fully or failed fully.  Therefore, the LoD model will not converge.
+
+
+Note: All standards tested for N1 yielded higher Cq.CV values than the user-defined CV threshold of 0.35. The CV threshold has been adjusted to 1.64398188340644 for the LOQ of this marker.
+
+
+WARNING: For N2, all standards detected fully or failed fully.  Therefore, the LoD model will not converge.
+
+
+Note: All standards tested for N2 yielded higher Cq.CV values than the user-defined CV threshold of 0.35. The CV threshold has been adjusted to 1.82928346584552 for the LOQ of this marker.
+
+
+Assay summary:
+
+R.squared: The R-squared value of linear regression of all standards Cq-values vs log10 of the starting quantities.
+Slope: The slope of the linear regression.
+Intercept: The y-intercept of the linear regression.
+
+Low.95: The lowest standard with at least 95% positive detection.
+LOD: The 95% limit of detection as determined by probit modeling.
+LOQ: The limit of quantification as determined by decay modeling, using the user-selected CV threshold of: 0.35
+
+rep2.LOD: The effective limit of detection if analyzing in 2 replicates.
+rep3.LOD: The effective limit of detection if analyzing in 3 replicates.
+rep4.LOD: The effective limit of detection if analyzing in 4 replicates.
+rep5.LOD: The effective limit of detection if analyzing in 5 replicates.
+rep8.LOD: The effective limit of detection if analyzing in 8 replicates.
+
+

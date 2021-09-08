@@ -8,6 +8,8 @@ n1 = read.csv("./data/raw_data/pos_neg_n1.csv")
 n2 = read.csv("./data/raw_data/pos_neg_n2.csv")
 n1_n2_pos_neg = read.csv("./data/processed_data/n1_n2_pos_neg.csv")
 
+cfx_pos_neg = read.csv("./data/raw_data/cfx_pos_neg.csv")
+
 names(n1)[1] = "sample_date"
 names(n2)[1] = "sample_date"
 
@@ -23,3 +25,20 @@ df %>% add_count(date, POS_NEG)
 count_table = n1_n2_pos_neg %>% group_by(date, POS_NEG) %>% tally()
 
 count_table = count_table %>% spread(POS_NEG, n)
+
+
+
+
+###CFX DATA###
+
+cfx_pos_neg = cfx_pos_neg %>% separate(sample_id, into = c("wrf", "collection_num", "rep"), sep = "_")
+
+count_table = cfx_pos_neg %>% group_by(collection_num, POS_NEG) %>% tally()
+count_table = count_table %>% spread(POS_NEG, n)
+
+count_table = count_table %>% mutate(percent_pos = pos/(neg+pos)*100)
+
+count_table$collection_num = as.numeric(count_table$collection_num)
+
+count_table %>% ggplot(aes(x = collection_num, y = percent_pos)) + geom_point() + geom_line()
+write.csv(count_table, "./cfx_pos.csv")

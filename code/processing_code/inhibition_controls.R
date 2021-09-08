@@ -1,67 +1,57 @@
 #Load Libraries
-
 library(tidyverse)
 library(plyr)
 library(dplyr)
 
 
-
 #Load Data 
 inhibition_data = read.csv("./data/raw_data/QC/inhibition_controls.csv")
-rna_controls = read.csv("./data/raw_data/QC/rna_controls.csv")
+rna_controls = read.csv("./data/raw_data/QC/bcov_rna_controls.csv")
 
 
+###CLEAN DATA###
 
+inhibition_data$ct = as.numeric(inhibition_data$ct)
+inhibition_data = inhibition_data %>% drop_na() %>% filter(ct < 40)
+
+names(rna_controls)[1] = "sample_name"
+rna_controls$ct = as.numeric(rna_controls$ct)
+rna_controls = rna_controls %>% drop_na() %>% filter(ct < 40)
+
+###INHIBITION CONTROLS###
+
+
+##BCoV Control RNA (RNA + H20)
+rna_controls = plyr::ddply(rna_controls,.(sample_name, sample_type),plyr::summarize, ct_ave = mean(ct)) 
+
+##Summarize BCoV RNA Controls 
+summary(rna_controls)
+#Min 10.09, Med 16.8, Mean 16.57, IQR 15.25 to 17.70, Max 21.46
+
+
+#Take the average of the technical replicates (plated in triplicate).
 inhibition_data = plyr::ddply(inhibition_data,.(sample_name, sample_type),plyr::summarize, ct_ave = mean(ct)) 
 
-
-inhibition_data %>% ggplot(aes(x = sample_type, y = ct_ave)) + 
-  geom_boxplot() + 
-  ylab("Ct Value") + 
-  xlab("Sample Type") + 
-  ggtitle("Inhibition Control") + 
-  geom_text(data = p_meds, aes(x = sample_type, y = med, label = med), size = 3, vjust = -1)
+#Summarize inhibition controls (Sample + BCoV RNA) 
+summary(inhibition_data)
+#Min 9.1, Med 17.71, mwan 17.65, IQR 16.813 - 18.874, Max 22.870
 
 
-inhibition_data %>% ggplot(aes(x = sample_type, y = ct_ave)) + 
-  geom_violin(draw_quantiles = c(0.5)) + 
-  ylab("Ct Value") + 
-  xlab("Sample Type") + 
-  ggtitle("Inhibition Control") + 
-  geom_text(data = p_meds, aes(x = sample_type, y = med, label = med), size = 3, vjust = -1)
+#Note: It's looking like we have a range of the control from Ct 15 - 17, and a range of the 
+#samples from Ct 16 - 18. I'd say, samples with Ct > 19 are "inhibited." 
+#How many "inhibited" samples do we have? Any patterns we can find?
 
+#I want to plot a histogram of the samples and controls. 
+all_data = rbind(rna_controls, inhibition_data)
 
+all_data %>% ggplot(aes(x = ct_ave, color = sample_type)) + geom_histogram(alpha=0.5, position="identity")
+
+all_data %>% ggplot(aes(x = ct_ave, color = sample_type)) + geom_density(alpha=0.5, position="identity") + geom_vline(aes(xintercept=mean(ct_ave), color = sample_type), linetype="dashed", size=1)
 
 
 
 
-#Generate Sampling Data Set
-#Sampling Data 
-sample_data = data.frame("collection_num" = 5:18, "date" = c("2020-06-16", "2020-06-23", "2020-06-30", "2020-07-07", "2020-07-14", "2020-07-21", "2020-07-28", "2020-08-04", "2020-08-11", "2020-08-18", "2020-08-25", "2020-09-01", "2020-09-08", "2020-09-15"), stringsAsFactors = FALSE)
-sample_data$date = as.Date(sample_data$date)
-sample_data$collection_num = as.character(sample_data$collection_num)
 
-names(inhibition_data)[1] = "run_num"
-names(rna_controls)[1] = "run_num"
-
-
-inhibition_data$run_date = as.character(inhibition_data$run_date)
-inhibition_data$run_date = as.Date(inhibition_data$run_date, "%m/%d/%Y")
-
-inhibition_data$collection_date = as.character(inhibition_data$collection_date)
-inhibition_data$collection_date = as.Date(inhibition_data$collection_date, "%m/%d/%Y")
-
-
-rna_controls$run_date = as.character(rna_controls$run_date)
-rna_controls$run_date = as.Date(rna_controls$run_date, "%m/%d/%Y")
-
-rna_controls$collection_date = as.character(rna_controls$collection_date)
-rna_controls$collection_date = as.Date(rna_controls$collection_date, "%m/%d/%Y")
-
-
-
-inhibition_data = plyr::ddply(inhibition_data,.(run_num, sample_name),plyr::summarize, ct_ave = mean(ct)) 
-rna_controls = plyr::ddply(rna_controls,.(run_num, sample_name),plyr::summarize, ct_ave = mean(ct)) 
 
 
 rna_controls$ct_control = rna_controls$ct_ave
